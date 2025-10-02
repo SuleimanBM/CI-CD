@@ -39,7 +39,7 @@ jobs:
 
             # 2. Clone or Pull the latest code
             if [ ! -d ".git" ]; then
-              git clone https://github.com/your-org/your-repo.git .
+              git clone https://github.com/SuleimanBM/CI-CD.git .
             else
               git pull origin main
             fi
