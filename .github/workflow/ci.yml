@@ -1,0 +1,62 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branch: [ main ]
+
+jobs:
+  build-and-deploy:
+  runs-on: ubuntu-latest
+
+  steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build Project
+      run: npm run build
+
+    - name: Run Tests
+      run: npm test
+    
+
+
+    - name: Deploy to EC2 via SSH 🚀
+      # Uses a popular action to run commands on a remote server
+      uses: appleboy/ssh-action@v1.0.0 
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          # 1. Navigate to the project directory
+          mkdir -p ${{ secrets.PROJECT_DIR }}
+          cd ${{ secrets.PROJECT_DIR }}
+
+          # 2. Clone or Pull the latest code
+          if [ ! -d ".git" ]; then
+            # Clone if it's the first deployment
+            git clone https://github.com/your-org/your-repo.git .
+          else
+            # Pull latest changes on subsequent deployments
+            git pull origin main # or your target branch
+          fi
+          
+          # 3. Install/Update Node dependencies on the server
+          npm ci 
+          
+          # 4. Re-run the build step on the server (optional, only if needed)
+          npm run build
+
+          # 5. Restart the application using PM2
+          pm2 stop my-node-app || true # Stop if running
+          pm2 delete my-node-app || true # Delete if it exists
+          pm2 start npm --name "my-node-app" -- run start # Start the app
+          pm2 save # Save the list of processes
